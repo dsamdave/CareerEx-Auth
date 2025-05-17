@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Auth = require("./authModel");
+const sendForgotPasswordEmail = require("./sendMail");
 dotenv.config();
 
 const app = express();
@@ -128,6 +129,15 @@ app.post("/forgot-password", async (req, res) => {
   }
 
   //   Send the user an email with their token
+
+  const accessToken = await jwt.sign(
+    {user},
+    `${process.env.ACCESS_TOKEN}`,
+    { expiresIn: "5m"}
+
+  )
+
+  await sendForgotPasswordEmail(email, accessToken)
 
   // Send OTP
 
