@@ -62,6 +62,7 @@ app.post("/sign-up", async (req, res) => {
     await newUser.save();
 
     // Send user Email
+    
 
     res.status(201).json({
       message: "User account created successfully",
