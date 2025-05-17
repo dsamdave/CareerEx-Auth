@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Auth = require("./authModel");
-const sendForgotPasswordEmail = require("./sendMail");
+const { sendForgotPasswordEmail, validEmail } = require("./sendMail")
 dotenv.config();
 
 const app = express();
@@ -27,6 +27,10 @@ app.post("/sign-up", async (req, res) => {
 
     if (!email) {
       return res.status(400).json({ message: "Please add your email" });
+    }
+
+    if(!validEmail(email)){
+        return  res.status(400).json({message: "Incoprrect email format"})
     }
 
     if (!password) {
