@@ -6,7 +6,8 @@ const authSchema = new mongoose.Schema({
     firstName: {type: String, default: ""},
     lastName: {type: String, default: ""},
     state: {type: String, default: ""},
-    verified: {type: Boolean, default: false}
+    verified: {type: Boolean, default: false},
+    role: {type: String, default: "user"}
     
 
 }, {timestamps: true})

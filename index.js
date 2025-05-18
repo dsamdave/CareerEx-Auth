@@ -3,8 +3,10 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const Auth = require("./authModel");
-const { sendForgotPasswordEmail, validEmail } = require("./sendMail")
+const Auth = require("./models/authModel");
+const { sendForgotPasswordEmail, validEmail } = require("./sendMail");
+const { handleGetAllUsers, handleUserRegistration } = require("./Controllers");
+const { validateRegister, authorization } = require("./middleware");
 dotenv.config();
 
 const app = express();
@@ -21,57 +23,7 @@ mongoose.connect(process.env.MONGODB_URL).then(() => {
   });
 });
 
-app.post("/sign-up", async (req, res) => {
-  try {
-    const { email, password, firstName, lastName, state } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: "Please add your email" });
-    }
-
-    if(!validEmail(email)){
-        return  res.status(400).json({message: "Incoprrect email format"})
-    }
-
-    if (!password) {
-      return res.status(400).json({ message: "Please enter password" });
-    }
-
-    const existingUser = await Auth.findOne({ email });
-
-    if (existingUser) {
-      return res.status(400).json({ message: "User account already exist" });
-    }
-
-    if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Password should be a min of 6 chars" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const newUser = new Auth({
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      state,
-    });
-
-    await newUser.save();
-
-    // Send user Email
-    
-
-    res.status(201).json({
-      message: "User account created successfully",
-      newUser: { email, firstName, lastName, state },
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+app.post("/sign-up", validateRegister, handleUserRegistration);
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
@@ -95,7 +47,7 @@ app.post("/login", async (req, res) => {
 
   // Generate a token
   const accessToken = jwt.sign({ id: user?._id }, process.env.ACCESS_TOKEN, {
-    expiresIn: "5m",
+    expiresIn: "5h",
   });
 
   const refreshToken = jwt.sign({ id: user?._id }, process.env.REFRESH_TOKEN, {
@@ -110,6 +62,7 @@ app.post("/login", async (req, res) => {
       firstName: user?.firstName,
       lastName: user?.lastName,
       state: user?.state,
+      role: user?.role
     },
     refreshToken,
   });
@@ -149,11 +102,11 @@ app.post("/forgot-password", async (req, res) => {
   res.status(200).json({ message: "Please check your email inbox" });
 });
 
-app.patch("/reset-password", async (req, res )=>{
+app.patch("/reset-password", authorization, async (req, res )=>{
 
-    const { email, password } = req.body
+    const { password } = req.body
 
-    const user = await Auth.findOne({ email })
+    const user = await Auth.findOne({ email: req.user.email })
 
     if(!user){
         return res.status(404).json({message: "User account not found!"})
@@ -168,3 +121,12 @@ app.patch("/reset-password", async (req, res )=>{
     res.status(200).json({message: "Password reste successful."})
 
 })
+
+// MVC -R
+// Model Controller Routes Middle-ware
+
+// Middlewares / Authorization /Validations
+
+// Deploy 
+
+app.get("/all-users", authorization, handleGetAllUsers)
