@@ -1,7 +1,8 @@
 const Auth = require("../models/authModel")
-const { validEmail } = require("../sendMail")
+const { validEmail, sendForgotPasswordEmail } = require("../sendMail")
 const { findUserService } = require("../service")
 const bcrypt = require("bcryptjs")
+const jwt = require("jsonwebtoken");
 
 
 const handleGetAllUsers = async (req, res)=>{
@@ -69,9 +70,109 @@ const handleUserRegistration = async (req, res) => {
     }
   }
 
+  const handleLogin = async (req, res) => {
+    const { email, password } = req.body;
+  
+    const user = await Auth.findOne({ email });
+    // .select("-password")
+  
+    if (!user) {
+      return res.status(404).json({ message: "User account does not exist." });
+    }
+  
+    const isMatch = await bcrypt.compare(password, user?.password);
+  
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect email or password." });
+    }
+  
+    // if(!user.verified){
+  
+    // }
+  
+    // Generate a token
+    const accessToken = jwt.sign({ id: user?._id }, process.env.ACCESS_TOKEN, {
+      expiresIn: "5h",
+    });
+  
+    const refreshToken = jwt.sign({ id: user?._id }, process.env.REFRESH_TOKEN, {
+      expiresIn: "30d",
+    });
+  
+    res.status(200).json({
+      message: "Login successful",
+      accessToken,
+      user: {
+        email: user?.email,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        state: user?.state,
+        role: user?.role
+      },
+      refreshToken,
+    });
+  }
+
+  const handleForgotPassword = async (req, res) => {
+    const { email, userName } = req.body;
+  
+    // let user
+  
+    // if(email){
+    //     const user = await Auth.findOne({ email })
+    // }
+    // if(userName){
+    //     const user = await Auth.findOne({ userName })
+    // }
+  
+    const user = await Auth.findOne({ email });
+  
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+  
+    //   Send the user an email with their token
+  
+    const accessToken = await jwt.sign(
+      {user},
+      `${process.env.ACCESS_TOKEN}`,
+      { expiresIn: "5m"}
+  
+    )
+  
+    await sendForgotPasswordEmail(email, accessToken)
+  
+    // Send OTP
+  
+    res.status(200).json({ message: "Please check your email inbox" });
+  }
+
+  const handleResetPassword = async (req, res )=>{
+
+    const { password } = req.body
+
+    const user = await Auth.findOne({ email: req.user.email })
+
+    if(!user){
+        return res.status(404).json({message: "User account not found!"})
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12)
+
+    user.password = hashedPassword
+
+    await user.save()
+
+    res.status(200).json({message: "Password reste successful."})
+
+}
+
 
 
 module.exports = {
     handleGetAllUsers,
-    handleUserRegistration
+    handleUserRegistration,
+    handleLogin,
+    handleForgotPassword,
+    handleResetPassword
 }
