@@ -23,5 +23,9 @@ mongoose.connect(process.env.MONGODB_URL).then(() => {
   });
 });
 
+app.get("/", (req, res)=>{
+  res.status(200).json({message: "Welcome to career ex cohort backend"})
+})
+
 app.use(routes)
 
