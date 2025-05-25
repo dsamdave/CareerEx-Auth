@@ -27,5 +27,5 @@ app.get("/", (req, res)=>{
   res.status(200).json({message: "Welcome to career ex cohort backend"})
 })
 
-app.use(routes)
+app.use("/api", routes)
 
