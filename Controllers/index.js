@@ -11,10 +11,10 @@ const handleGetAllUsers = async (req, res)=>{
 
     const allUser = await findUserService()
 
-    // res.status(200).json({
-    //     messga: "Successful",
-    //     allUser
-    // })
+    res.status(200).json({
+        messga: "Successful",
+        allUser
+    })
 
 }
 
